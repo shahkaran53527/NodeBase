@@ -1,0 +1,36 @@
+import { ExecutionsContainer } from "@/features/executions/components/execution-container";
+import { ExecutionsError } from "@/features/executions/components/executions-error";
+import { ExecutionsList } from "@/features/executions/components/executions-list";
+import { ExecutionsLoading } from "@/features/executions/components/executions-loading";
+import { executionsParamsLoader } from "@/features/executions/server/params-loader";
+import { prefetchExecutions } from "@/features/executions/server/prefetch";
+import { requireAuth } from "@/lib/auth-utils";
+import { ErrorBoundary } from "@sentry/nextjs";
+import { SearchParams } from "nuqs";
+import { Suspense } from "react";
+import { HydrateClient } from "trpc/server";
+
+type Props = {
+  searchParams: Promise<SearchParams>;
+};
+
+const Page = async ({ searchParams }: Props) => {
+  await requireAuth();
+
+  const params = await executionsParamsLoader(searchParams);
+  prefetchExecutions(params);
+
+  return (
+    <ExecutionsContainer>
+      <HydrateClient>
+        <ErrorBoundary fallback={<ExecutionsError />}>
+          <Suspense fallback={<ExecutionsLoading />}>
+            <ExecutionsList />
+          </Suspense>
+        </ErrorBoundary>
+      </HydrateClient>
+    </ExecutionsContainer>
+  );
+};
+
+export default Page;
